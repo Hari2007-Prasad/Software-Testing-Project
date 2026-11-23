@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Case - {{ case.custom_id }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('test_planning.index') }}">Test Planning</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('test_planning.case_details', case_id=case.id) }}">{{ case.custom_id }}</a></li>
+                <li class="breadcrumb-item active">Edit</li>
+            </ol>
+        </nav>
+
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-pen-to-square text-primary me-2"></i> Edit Test Case Specification</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('test_planning.edit_case', case_id=case.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Test Case ID</label>
+                            <input type="text" class="form-control font-monospace bg-light" value="{{ case.custom_id }}" readonly disabled>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Module / Subsystem *</label>
+                            <input type="text" name="module" value="{{ case.module }}" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Test Category *</label>
+                            <select name="category" class="form-select">
+                                <option value="Functional Testing" {% if case.category == 'Functional Testing' %}selected{% endif %}>Functional Testing</option>
+                                <option value="Security Testing" {% if case.category == 'Security Testing' %}selected{% endif %}>Security Testing</option>
+                                <option value="UI Testing" {% if case.category == 'UI Testing' %}selected{% endif %}>UI Testing</option>
+                                <option value="Validation Testing" {% if case.category == 'Validation Testing' %}selected{% endif %}>Validation Testing</option>
+                                <option value="Authentication" {% if case.category == 'Authentication' %}selected{% endif %}>Authentication</option>
+                                <option value="Authorization Testing" {% if case.category == 'Authorization Testing' %}selected{% endif %}>Authorization Testing</option>
+                                <option value="Image Comparison Testing" {% if case.category == 'Image Comparison Testing' %}selected{% endif %}>Image Comparison Testing</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Test Case Title *</label>
+                        <input type="text" name="title" value="{{ case.title }}" class="form-control" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Preconditions</label>
+                        <input type="text" name="preconditions" value="{{ case.preconditions or '' }}" class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Execution Steps *</label>
+                        <textarea name="steps" class="form-control font-monospace small" rows="4" required>{{ case.steps }}</textarea>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Test Data</label>
+                            <textarea name="test_data" class="form-control font-monospace small" rows="2">{{ case.test_data or '' }}</textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Expected Result *</label>
+                            <textarea name="expected_result" class="form-control small" rows="2" required>{{ case.expected_result }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Priority</label>
+                            <select name="priority" class="form-select">
+                                <option value="Low" {% if case.priority == 'Low' %}selected{% endif %}>Low</option>
+                                <option value="Medium" {% if case.priority == 'Medium' %}selected{% endif %}>Medium</option>
+                                <option value="High" {% if case.priority == 'High' %}selected{% endif %}>High</option>
+                                <option value="Critical" {% if case.priority == 'Critical' %}selected{% endif %}>Critical</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Severity</label>
+                            <select name="severity" class="form-select">
+                                <option value="Minor" {% if case.severity == 'Minor' %}selected{% endif %}>Minor</option>
+                                <option value="Major" {% if case.severity == 'Major' %}selected{% endif %}>Major</option>
+                                <option value="Critical" {% if case.severity == 'Critical' %}selected{% endif %}>Critical</option>
+                                <option value="Blocker" {% if case.severity == 'Blocker' %}selected{% endif %}>Blocker</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Assigned Tester</label>
+                            <select name="tester_id" class="form-select">
+                                {% for u in testers %}
+                                <option value="{{ u.id }}" {% if case.tester_id == u.id %}selected{% endif %}>{{ u.full_name or u.username }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('test_planning.case_details', case_id=case.id) }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
+                            <i class="fa-solid fa-save me-1"></i> Update Specification
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

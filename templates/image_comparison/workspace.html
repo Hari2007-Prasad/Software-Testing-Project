@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Visual Comparison Workspace{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('image_comparison.index') }}">Image Comparison</a></li>
+                <li class="breadcrumb-item active">Comparison Workspace</li>
+            </ol>
+        </nav>
+
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-camera-retro text-primary me-2"></i> Computer Vision Visual Regression Workspace</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('image_comparison.workspace') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <!-- Project & Name -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Target Project *</label>
+                            <select name="project_id" class="form-select" required>
+                                {% for p in projects %}
+                                <option value="{{ p.id }}" {% if request.args.get('project_id', type=int) == p.id %}selected{% endif %}>{{ p.name }} ({{ p.environment }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Comparison Name / Label *</label>
+                            <input type="text" name="name" class="form-control" placeholder="e.g. LMS Student Dashboard v2.4 Verification" required>
+                        </div>
+                    </div>
+
+                    <!-- Dual Image Upload Dropzones -->
+                    <div class="row g-4 mb-4">
+                        <!-- Reference Image -->
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded bg-light text-center h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="badge bg-secondary">Baseline</span>
+                                        <span class="fw-bold small text-dark">1. Reference Screenshot *</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <input type="file" name="reference_image" id="refInput" class="form-control" accept=".png,.jpg,.jpeg" required onchange="previewImage(this, 'refPreview', 'refInfo')">
+                                    </div>
+                                    <div class="image-compare-box mb-2" id="refBox" style="min-height: 200px;">
+                                        <img id="refPreview" src="#" alt="Reference Preview" style="display: none;">
+                                        <span id="refPlaceholder" class="text-secondary small"><i class="fa-regular fa-image fa-2x d-block mb-1"></i> Upload golden baseline image</span>
+                                    </div>
+                                </div>
+                                <div id="refInfo" class="small text-muted font-monospace mt-1">PNG, JPG, or JPEG (Max 16 MB)</div>
+                            </div>
+                        </div>
+
+                        <!-- Actual Image -->
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded bg-light text-center h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <span class="badge bg-primary">Candidate</span>
+                                        <span class="fw-bold small text-dark">2. Actual Screenshot *</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <input type="file" name="actual_image" id="actInput" class="form-control" accept=".png,.jpg,.jpeg" required onchange="previewImage(this, 'actPreview', 'actInfo')">
+                                    </div>
+                                    <div class="image-compare-box mb-2" id="actBox" style="min-height: 200px;">
+                                        <img id="actPreview" src="#" alt="Actual Preview" style="display: none;">
+                                        <span id="actPlaceholder" class="text-secondary small"><i class="fa-regular fa-image fa-2x d-block mb-1"></i> Upload current candidate image</span>
+                                    </div>
+                                </div>
+                                <div id="actInfo" class="small text-muted font-monospace mt-1">PNG, JPG, or JPEG (Max 16 MB)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Algorithm Controls & Thresholds Accordion -->
+                    <div class="accordion mb-4" id="algoAccordion">
+                        <div class="accordion-item border rounded overflow-hidden">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed py-2 fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#algoCollapse">
+                                    <i class="fa-solid fa-sliders text-primary me-2"></i> Computer Vision Algorithm Parameters & Sensitivity
+                                </button>
+                            </h2>
+                            <div id="algoCollapse" class="accordion-collapse collapse" data-bs-parent="#algoAccordion">
+                                <div class="accordion-body bg-light">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-bold text-secondary">Pixel Intensity Threshold (1-255)</label>
+                                            <input type="number" name="intensity_threshold" class="form-control" value="25" min="1" max="255">
+                                            <small class="text-muted" style="font-size: 0.72rem;">Minimum color difference per pixel to be flagged as changed.</small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-bold text-secondary">Minimum Region Area (px)</label>
+                                            <input type="number" name="min_region_size" class="form-control" value="25" min="1" max="5000">
+                                            <small class="text-muted" style="font-size: 0.72rem;">Filters out tiny sub-pixel artifacts smaller than threshold.</small>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-bold text-secondary">Noise Filtering Level</label>
+                                            <select name="noise_filter_level" class="form-select">
+                                                <option value="0">0 - None (Strict Raw Pixels)</option>
+                                                <option value="1" selected>1 - Mild (Anti-aliasing mitigation)</option>
+                                                <option value="2">2 - Moderate (Morphological opening)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-bold text-secondary">Canny Edge Lower Threshold</label>
+                                            <input type="number" name="lower_edge_thresh" class="form-control" value="50" min="1" max="250">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-bold text-secondary">Canny Edge Upper Threshold</label>
+                                            <input type="number" name="upper_edge_thresh" class="form-control" value="150" min="1" max="300">
+                                        </div>
+                                        <div class="col-md-4 d-flex align-items-center pt-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" name="enable_alignment" id="alignCheck">
+                                                <label class="form-check-label fw-bold small text-dark" for="alignCheck">Enable ORB Image Alignment</label>
+                                                <small class="text-muted d-block" style="font-size: 0.72rem;">Compensates for minor browser translation shifts.</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('image_comparison.index') }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm fw-semibold">
+                            <i class="fa-solid fa-play me-1"></i> Execute Visual Comparison
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewImage(input, previewId, infoId) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById(previewId);
+            img.src = e.target.result;
+            img.style.display = 'block';
+            
+            // Hide placeholder text
+            const placeholder = img.nextElementSibling;
+            if (placeholder) placeholder.style.display = 'none';
+
+            // Display file info
+            const imgObj = new Image();
+            imgObj.src = e.target.result;
+            imgObj.onload = function() {
+                document.getElementById(infoId).innerText = `${file.name} | ${imgObj.width}x${imgObj.height} px | ${(file.size / 1024).toFixed(1)} KB`;
+            };
+        };
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+{% endblock %}

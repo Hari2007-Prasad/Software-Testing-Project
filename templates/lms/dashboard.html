@@ -1,0 +1,142 @@
+{% extends "lms/base_lms.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Welcome Header -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Student Learning Dashboard</h2>
+            <p class="text-secondary small mb-0">Welcome back, <b>{{ current_user.full_name or current_user.username }}</b> | Track your academic progress</p>
+        </div>
+        <div>
+            <a href="{{ url_for('lms.course_listing') }}" class="btn btn-primary rounded-pill px-4 shadow-sm btn-sm">
+                <i class="fa-solid fa-compass me-1"></i> Explore More Courses
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white border rounded-3 shadow-xs">
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.72rem;">Enrolled Courses</small>
+                <div class="fs-3 fw-bold text-primary mt-1">{{ enrollments|length }}</div>
+                <small class="text-secondary">Active curriculum</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white border rounded-3 shadow-xs">
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.72rem;">Completed Modules</small>
+                <div class="fs-3 fw-bold text-success mt-1">4</div>
+                <small class="text-success">Ahead of schedule</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white border rounded-3 shadow-xs">
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.72rem;">Average Progress</small>
+                <div class="fs-3 fw-bold text-dark mt-1">
+                    {% if enrollments %}
+                    45%
+                    {% else %}
+                    0%
+                    {% endif %}
+                </div>
+                <small class="text-secondary">Term pace</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="p-3 bg-white border rounded-3 shadow-xs">
+                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.72rem;">Certificates Earned</small>
+                <div class="fs-3 fw-bold text-warning mt-1">1</div>
+                <small class="text-muted">Verified credential</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enrolled Courses Table -->
+    <div class="card bg-white border rounded-3 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0"><i class="fa-solid fa-graduation-cap text-primary me-2"></i> My Active Courses</h5>
+            <span class="badge bg-light text-secondary border">{{ enrollments|length }} Enrolled</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Course</th>
+                        <th>Instructor</th>
+                        <th>Progress</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for en in enrollments %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">{{ en.course.title }}</div>
+                            <small class="text-muted font-monospace">{{ en.course.code }} &bull; {{ en.course.category }}</small>
+                        </td>
+                        <td class="small">{{ en.course.instructor }}</td>
+                        <td style="min-width: 140px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ en.progress }}%;"></div>
+                                </div>
+                                <small class="text-muted fw-semibold">{{ en.progress }}%</small>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success">{{ en.status }}</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('lms.course_details', course_id=en.course.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                Continue
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-book-open fa-2x mb-2 text-secondary d-block"></i>
+                            You are not enrolled in any courses yet. Explore our course catalog to get started.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recommended Next Courses -->
+    <div class="mt-4">
+        <h5 class="fw-bold text-dark mb-3">Recommended For Your Learning Path</h5>
+        <div class="row g-3">
+            {% for c in available_courses %}
+            <div class="col-md-6 col-lg-3">
+                <div class="course-card h-100 d-flex flex-column bg-white">
+                    <div class="card-body flex-grow-1">
+                        <span class="badge bg-secondary-subtle text-secondary mb-2" style="font-size: 0.7rem;">{{ c.category }}</span>
+                        <h6 class="fw-bold mb-1">
+                            <a href="{{ url_for('lms.course_details', course_id=c.id) }}" class="text-dark text-decoration-none">
+                                {{ c.title }}
+                            </a>
+                        </h6>
+                        <small class="text-muted d-block mb-2">{{ c.instructor }}</small>
+                        <p class="text-secondary small mb-0">{{ c.description[:70] }}...</p>
+                    </div>
+                    <div class="card-footer bg-transparent border-top p-3 d-flex justify-content-between align-items-center">
+                        <small class="text-muted"><i class="fa-regular fa-clock me-1"></i> {{ c.duration }}</small>
+                        <a href="{{ url_for('lms.course_details', course_id=c.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            View
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

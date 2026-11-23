@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Digital Learning Portal{% endblock %} - LMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .lms-navbar {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .lms-brand {
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: #1e293b;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .lms-brand-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        .lms-nav-link {
+            color: #475569;
+            font-weight: 500;
+            font-size: 0.92rem;
+            padding: 8px 16px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .lms-nav-link:hover, .lms-nav-link.active {
+            color: #2563eb;
+        }
+        .course-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        .course-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+        .course-card .card-body {
+            padding: 20px;
+        }
+        .course-banner {
+            height: 140px;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 2.5rem;
+        }
+        .footer-lms {
+            background-color: #0f172a;
+            color: #94a3b8;
+            padding: 40px 0 20px;
+            margin-top: auto;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- TOP LMS NAVBAR -->
+<nav class="lms-navbar sticky-top">
+    <div class="container d-flex align-items-center justify-content-between">
+        <a href="{{ url_for('lms.home') }}" class="lms-brand">
+            <div class="lms-brand-icon">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <span>Digital Learning <span class="text-primary">LMS</span></span>
+        </a>
+
+        <div class="d-none d-md-flex align-items-center gap-1">
+            <a href="{{ url_for('lms.home') }}" class="lms-nav-link {% if request.endpoint == 'lms.home' %}active{% endif %}">Home</a>
+            <a href="{{ url_for('lms.course_listing') }}" class="lms-nav-link {% if request.endpoint == 'lms.course_listing' %}active{% endif %}">Courses</a>
+            <a href="{{ url_for('lms.about') }}" class="lms-nav-link {% if request.endpoint == 'lms.about' %}active{% endif %}">About</a>
+            <a href="{{ url_for('lms.contact') }}" class="lms-nav-link {% if request.endpoint == 'lms.contact' %}active{% endif %}">Contact</a>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            {% if current_user.is_authenticated %}
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle rounded-pill px-3" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-regular fa-user-circle me-1 text-primary"></i> {{ current_user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><a class="dropdown-item" href="{{ url_for('lms.student_dashboard') }}"><i class="fa-solid fa-gauge me-2 text-secondary"></i> Dashboard</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('lms.student_profile') }}"><i class="fa-solid fa-id-badge me-2 text-secondary"></i> Profile</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('lms.admin_dashboard') }}"><i class="fa-solid fa-crown me-2 text-warning"></i> LMS Administration</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('dashboard.index') }}"><i class="fa-solid fa-shield-halved me-2 text-primary"></i> Testing Platform</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('lms.logout') }}"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Log Out</a></li>
+                    </ul>
+                </div>
+            {% else %}
+                <a href="{{ url_for('lms.login') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">Log In</a>
+                <a href="{{ url_for('lms.register') }}" class="btn btn-primary btn-sm rounded-pill px-3">Register</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<!-- FLASH MESSAGES -->
+<div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fa-solid fa-circle-info me-2"></i> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<!-- MAIN CONTENT -->
+<main class="flex-grow-1 pb-5">
+    {% block content %}{% endblock %}
+</main>
+
+<!-- FOOTER -->
+<footer class="footer-lms">
+    <div class="container text-center">
+        <div class="mb-3">
+            <span class="fw-bold text-white fs-5">Digital Learning Platform</span>
+            <p class="small text-secondary mb-0">Authorized Target Application for Security & Functional Verification</p>
+        </div>
+        <div class="d-flex justify-content-center gap-4 small mb-3">
+            <a href="{{ url_for('lms.home') }}" class="text-secondary text-decoration-none">Home</a>
+            <a href="{{ url_for('lms.course_listing') }}" class="text-secondary text-decoration-none">Courses</a>
+            <a href="{{ url_for('lms.about') }}" class="text-secondary text-decoration-none">About</a>
+            <a href="{{ url_for('lms.contact') }}" class="text-secondary text-decoration-none">Contact</a>
+            <a href="{{ url_for('dashboard.index') }}" class="text-primary text-decoration-none">QA Framework</a>
+        </div>
+        <small class="text-secondary d-block">&copy; {{ current_year }} Digital Learning Framework. All rights reserved.</small>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

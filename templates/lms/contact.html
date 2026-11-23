@@ -1,0 +1,41 @@
+{% extends "lms/base_lms.html" %}
+
+{% block title %}Contact & Support{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="bg-white p-5 rounded-4 border shadow-sm">
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 mb-3">Academic Inquiries</span>
+                <h3 class="fw-bold text-dark mb-2">Connect with Instructional Support</h3>
+                <p class="text-secondary small mb-4">Have questions regarding course curriculums, student enrollments, or technical specifications? Reach out to our campus team.</p>
+
+                <form method="POST" action="{{ url_for('lms.contact') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Your Name *</label>
+                        <input type="text" name="name" class="form-control" placeholder="Alex Rivera" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Academic Email Address *</label>
+                        <input type="email" name="email" class="form-control" placeholder="student@digitallearn.edu" required>
+                        <small class="text-muted">Must be a valid email syntax.</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary">Inquiry Message *</label>
+                        <textarea name="message" class="form-control" rows="4" placeholder="Detail your question, course interest, or enrollment query..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm fw-semibold">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Send Inquiry Message
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

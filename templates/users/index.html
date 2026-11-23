@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">User Management</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">User Accounts & Role-Based Access Control</h3>
+    </div>
+    <div>
+        <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="fa-solid fa-user-plus me-1"></i> Add System User
+        </button>
+    </div>
+</div>
+
+<div class="card-enterprise">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-users text-primary me-2"></i> Registered Accounts ({{ users|length }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>User Details</th>
+                    <th>Email</th>
+                    <th>Assigned Role</th>
+                    <th>Account Status</th>
+                    <th>Last Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="fw-bold font-monospace">#{{ u.id }}</td>
+                    <td>
+                        <div class="fw-bold text-dark">{{ u.full_name or u.username }}</div>
+                        <small class="text-muted font-monospace">@{{ u.username }}</small>
+                    </td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('users.update_role', user_id=u.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <select name="role" class="form-select form-select-sm d-inline-block w-auto" onchange="this.form.submit()" {% if u.id == current_user.id %}disabled{% endif %}>
+                                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                                <option value="tester" {% if u.role == 'tester' %}selected{% endif %}>Tester</option>
+                                <option value="student" {% if u.role == 'student' %}selected{% endif %}>Student</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td>
+                        <span class="badge {% if u.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ 'Active' if u.is_active else 'Deactivated' }}
+                        </span>
+                    </td>
+                    <td class="small text-muted">{{ u.last_login|datetime_format if u.last_login else 'Never' }}</td>
+                    <td>
+                        {% if u.id != current_user.id %}
+                        <form method="POST" action="{{ url_for('users.toggle_status', user_id=u.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} rounded-pill px-3 py-1">
+                                {{ 'Deactivate' if u.is_active else 'Activate' }}
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="badge bg-light text-secondary border">Current User</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('users.create') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus text-primary me-2"></i> Create System User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Full Name</label>
+                        <input type="text" name="full_name" class="form-control" placeholder="Jane Doe" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-secondary">Username</label>
+                            <input type="text" name="username" class="form-control" placeholder="janed" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-secondary">Role</label>
+                            <select name="role" class="form-select">
+                                <option value="tester" selected>QA Tester</option>
+                                <option value="admin">Administrator</option>
+                                <option value="student">LMS Student</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="jane@organization.org" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="••••••••" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

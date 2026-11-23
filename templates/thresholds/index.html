@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Threshold Analyzer{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Threshold Analyzer</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">Threshold Acceptance Criteria & Quality Scoring</h3>
+    </div>
+    <div class="d-flex gap-2">
+        {% if selected_project %}
+        <form method="POST" action="{{ url_for('thresholds.evaluate', project_id=selected_project.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                <i class="fa-solid fa-calculator me-1"></i> Run Acceptance Evaluation
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Project Selector Form -->
+<div class="card-enterprise mb-4">
+    <div class="card-body py-3 d-flex align-items-center justify-content-between">
+        <span class="fw-bold small text-secondary text-uppercase"><i class="fa-solid fa-diagram-project me-1"></i> Active Policy Context</span>
+        <form method="GET" action="{{ url_for('thresholds.index') }}" class="d-flex align-items-center gap-2">
+            <select name="project_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for p in projects %}
+                <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>{{ p.name }} ({{ p.environment }})</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if latest_analysis %}
+<!-- LATEST ASSESSMENT SCORECARD BANNER -->
+<div class="card-enterprise mb-4 border-2 {% if latest_analysis.overall_status == 'PASS' %}border-success{% elif latest_analysis.overall_status == 'FAIL' %}border-danger{% else %}border-warning{% endif %}">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold">
+            <i class="fa-solid fa-award text-primary me-2"></i> Latest Project Acceptance Assessment
+        </h5>
+        <span class="badge {% if latest_analysis.overall_status == 'PASS' %}bg-success{% elif latest_analysis.overall_status == 'FAIL' %}bg-danger{% else %}bg-warning text-dark{% endif %} px-3 py-2 fs-6">
+            Verdict: {{ latest_analysis.overall_status }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 text-center">
+            <div class="col-md-3">
+                <div class="p-3 border rounded bg-light">
+                    <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Visual Quality</span>
+                    <span class="fs-3 fw-bold text-dark">{{ "%.1f"|format(latest_analysis.visual_score) }}%</span>
+                    <span class="badge {{ latest_analysis.visual_status|status_badge }} d-block mt-1">{{ latest_analysis.visual_status }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 border rounded bg-light">
+                    <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Functional Quality</span>
+                    <span class="fs-3 fw-bold text-dark">{{ "%.1f"|format(latest_analysis.functional_score) }}%</span>
+                    <span class="badge {{ latest_analysis.functional_status|status_badge }} d-block mt-1">{{ latest_analysis.functional_status }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 border rounded bg-light">
+                    <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Security Baseline</span>
+                    <span class="fs-3 fw-bold text-dark">{{ "%.1f"|format(latest_analysis.security_score) }}%</span>
+                    <span class="badge {{ latest_analysis.security_status|status_badge }} d-block mt-1">{{ latest_analysis.security_status }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="p-3 border rounded bg-light">
+                    <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Composite Quality Score</span>
+                    <span class="fs-3 fw-bold text-primary">{{ "%.1f"|format(latest_analysis.overall_score) }}%</span>
+                    <small class="text-muted d-block mt-1">Weighted Health</small>
+                </div>
+            </div>
+        </div>
+
+        {% if latest_analysis.get_violations() %}
+        <div class="alert alert-warning mt-3 mb-0">
+            <h6 class="fw-bold mb-2"><i class="fa-solid fa-triangle-exclamation me-1"></i> Recorded Acceptance Violations:</h6>
+            <ul class="mb-0 ps-3 small">
+                {% for v in latest_analysis.get_violations() %}
+                <li>{{ v }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Configured Acceptance Criteria Policy Form -->
+{% if config %}
+<div class="card-enterprise mb-4">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-sliders text-primary me-2"></i> Acceptance Thresholds & Scoring Weights</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('thresholds.save_config') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="project_id" value="{{ selected_project.id }}"/>
+
+            <!-- Image Comparison Thresholds -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Visual Regression Thresholds</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Maximum Allowed Pixel Diff %</label>
+                        <input type="number" step="0.1" name="max_pixel_diff_pct" class="form-control" value="{{ config.max_pixel_diff_pct }}" required>
+                        <small class="text-muted">Differences above this limit trigger FAIL.</small>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Minimum Pixel Similarity %</label>
+                        <input type="number" step="0.1" name="min_pixel_similarity_pct" class="form-control" value="{{ config.min_pixel_similarity_pct }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Minimum SSIM Index (0.0 - 1.0)</label>
+                        <input type="number" step="0.01" name="min_ssim_score" class="form-control" value="{{ config.min_ssim_score }}" min="0" max="1" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Minimum Changed Region Size (px)</label>
+                        <input type="number" name="min_region_size" class="form-control" value="{{ config.min_region_size }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Maximum Allowed Changed Regions</label>
+                        <input type="number" name="max_changed_regions" class="form-control" value="{{ config.max_changed_regions }}" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Functional Testing Thresholds -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">2. Automated Functional Testing Thresholds</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Minimum Test Pass Rate %</label>
+                        <input type="number" step="0.5" name="min_pass_rate" class="form-control" value="{{ config.min_pass_rate }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Maximum Permitted Failed Tests</label>
+                        <input type="number" name="max_failed_tests" class="form-control" value="{{ config.max_failed_tests }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Maximum Permitted Blocked Tests</label>
+                        <input type="number" name="max_blocked_tests" class="form-control" value="{{ config.max_blocked_tests }}" required>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Baseline Thresholds -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">3. Security Baseline Thresholds</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Max Allowed Critical Findings</label>
+                        <input type="number" name="max_critical_findings" class="form-control" value="{{ config.max_critical_findings }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Max Allowed High-Severity Findings</label>
+                        <input type="number" name="max_high_findings" class="form-control" value="{{ config.max_high_findings }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Policy Severity Mode</label>
+                        <select name="severity_policy" class="form-select">
+                            <option value="Strict" {% if config.severity_policy == 'Strict' %}selected{% endif %}>Strict (Zero Tolerance)</option>
+                            <option value="Moderate" {% if config.severity_policy == 'Moderate' %}selected{% endif %}>Moderate</option>
+                            <option value="Relaxed" {% if config.severity_policy == 'Relaxed' %}selected{% endif %}>Relaxed</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Composite Scoring Weights -->
+            <div class="mb-4">
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">4. Composite Quality Weights (Must sum to 1.0)</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Visual Quality Weight (W_v)</label>
+                        <input type="number" step="0.05" name="visual_weight" class="form-control" value="{{ config.visual_weight }}" min="0" max="1" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Functional Quality Weight (W_f)</label>
+                        <input type="number" step="0.05" name="functional_weight" class="form-control" value="{{ config.functional_weight }}" min="0" max="1" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Security Quality Weight (W_s)</label>
+                        <input type="number" step="0.05" name="security_weight" class="form-control" value="{{ config.security_weight }}" min="0" max="1" required>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-top text-end">
+                <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
+                    <i class="fa-solid fa-save me-1"></i> Update Policy Settings
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Historical Evaluations Table -->
+<div class="card-enterprise">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Historical Acceptance Evaluations ({{ analyses|length }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>Evaluation ID</th>
+                    <th>Visual Score</th>
+                    <th>Functional Score</th>
+                    <th>Security Score</th>
+                    <th>Composite Score</th>
+                    <th>Verdict</th>
+                    <th>Evaluated At</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in analyses %}
+                <tr>
+                    <td class="fw-bold font-monospace">#{{ a.id }}</td>
+                    <td>{{ "%.1f"|format(a.visual_score) }}% <span class="badge {{ a.visual_status|status_badge }} ms-1">{{ a.visual_status }}</span></td>
+                    <td>{{ "%.1f"|format(a.functional_score) }}% <span class="badge {{ a.functional_status|status_badge }} ms-1">{{ a.functional_status }}</span></td>
+                    <td>{{ "%.1f"|format(a.security_score) }}% <span class="badge {{ a.security_status|status_badge }} ms-1">{{ a.security_status }}</span></td>
+                    <td class="fw-bold text-primary">{{ "%.1f"|format(a.overall_score) }}%</td>
+                    <td><span class="badge {{ a.overall_status|status_badge }} px-3 py-1">{{ a.overall_status }}</span></td>
+                    <td class="small text-muted">{{ a.analyzed_at|datetime_format }}</td>
+                    <td>
+                        <a href="{{ url_for('thresholds.analysis_details', analysis_id=a.id) }}" class="btn btn-sm btn-light border py-1 px-3 rounded-pill">
+                            Breakdown
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center py-4 text-muted">No threshold evaluations run for this project yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

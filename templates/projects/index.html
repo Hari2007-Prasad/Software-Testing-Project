@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Testing Projects{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Projects</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">Testing Projects</h3>
+    </div>
+    <div>
+        <a href="{{ url_for('projects.create') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> New Project
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filters Bar -->
+<div class="card-enterprise mb-4">
+    <div class="card-body py-3">
+        <form method="GET" action="{{ url_for('projects.index') }}" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search project name or description...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="Active" {% if status_filter == 'Active' %}selected{% endif %}>Active</option>
+                    <option value="Archived" {% if status_filter == 'Archived' %}selected{% endif %}>Archived</option>
+                    <option value="Completed" {% if status_filter == 'Completed' %}selected{% endif %}>Completed</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="env" class="form-select">
+                    <option value="">All Environments</option>
+                    <option value="Development" {% if env_filter == 'Development' %}selected{% endif %}>Development</option>
+                    <option value="Staging" {% if env_filter == 'Staging' %}selected{% endif %}>Staging</option>
+                    <option value="Production" {% if env_filter == 'Production' %}selected{% endif %}>Production</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-dark w-100 rounded-pill">Filter</button>
+                {% if search_query or status_filter or env_filter %}
+                <a href="{{ url_for('projects.index') }}" class="btn btn-outline-secondary rounded-pill"><i class="fa-solid fa-xmark"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Projects Grid -->
+<div class="row g-4">
+    {% for p in projects %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card-enterprise h-100 d-flex flex-column">
+            <div class="card-body flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge {{ p.status|status_badge }}">{{ p.status }}</span>
+                    <span class="badge bg-light text-secondary border">{{ p.environment }}</span>
+                </div>
+                <h5 class="fw-bold mb-2">
+                    <a href="{{ url_for('projects.details', project_id=p.id) }}" class="text-dark text-decoration-none hover-primary">
+                        {{ p.name }}
+                    </a>
+                </h5>
+                <p class="text-secondary small mb-3" style="min-height: 40px;">
+                    {{ p.description[:110] }}{% if p.description|length > 110 %}...{% endif %}
+                </p>
+
+                <div class="bg-light p-2 rounded mb-3 font-monospace small text-truncate">
+                    <i class="fa-solid fa-globe text-primary me-1"></i> {{ p.app_url }}
+                </div>
+
+                <div class="row text-center g-2 border-top pt-3">
+                    <div class="col-4">
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">Plans</small>
+                        <span class="fw-bold text-dark">{{ p.test_plans.count() }}</span>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">Runs</small>
+                        <span class="fw-bold text-primary">{{ p.test_executions.count() }}</span>
+                    </div>
+                    <div class="col-4">
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">Visual</small>
+                        <span class="fw-bold text-success">{{ p.image_comparisons.count() }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent border-top p-3 d-flex justify-content-between align-items-center">
+                <small class="text-muted"><i class="fa-regular fa-calendar me-1"></i> {{ p.created_at|datetime_format('%b %d, %Y') }}</small>
+                <div class="btn-group">
+                    <a href="{{ url_for('projects.details', project_id=p.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                        Open Project
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card-enterprise text-center p-5">
+            <div class="brand-icon mx-auto mb-3" style="width: 54px; height: 54px; font-size: 1.4rem;">
+                <i class="fa-solid fa-diagram-project"></i>
+            </div>
+            <h5 class="fw-bold">No Projects Found</h5>
+            <p class="text-secondary small mb-3">Initialize your first digital learning application testing workspace.</p>
+            <div>
+                <a href="{{ url_for('projects.create') }}" class="btn btn-primary rounded-pill px-4">Create Testing Project</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

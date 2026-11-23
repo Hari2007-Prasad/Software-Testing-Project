@@ -1,0 +1,58 @@
+{% extends "lms/base_lms.html" %}
+
+{% block title %}Manage LMS Students{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Student Accounts & Roster</h2>
+            <p class="text-secondary small mb-0">Registered accounts across the Digital Learning Application</p>
+        </div>
+        <div>
+            <a href="{{ url_for('users.index') }}" class="btn btn-outline-primary rounded-pill px-4 btn-sm">
+                <i class="fa-solid fa-users-gear me-1"></i> Global User Administration
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Roster Table -->
+    <div class="card bg-white border rounded-3 shadow-sm">
+        <div class="card-header bg-transparent border-bottom py-3">
+            <h5 class="fw-bold mb-0">Student Roster ({{ users|length }})</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Student ID</th>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Active Courses</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td class="ps-4 font-monospace">#{{ u.id }}</td>
+                        <td class="fw-bold text-dark">{{ u.full_name or u.username }}</td>
+                        <td><code>@{{ u.username }}</code></td>
+                        <td class="small">{{ u.email }}</td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">{{ u.role }}</span></td>
+                        <td><span class="badge bg-primary-subtle text-primary">{{ u.enrollments.count() }} enrolled</span></td>
+                        <td>
+                            <span class="badge {% if u.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ 'Active' if u.is_active else 'Disabled' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

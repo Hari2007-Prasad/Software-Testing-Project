@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - Project Details{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('projects.index') }}">Projects</a></li>
+                <li class="breadcrumb-item active">{{ project.name }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold text-dark mb-0">{{ project.name }}</h3>
+            <span class="badge {{ project.status|status_badge }}">{{ project.status }}</span>
+            <span class="badge bg-light text-secondary border">{{ project.environment }}</span>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('projects.edit', project_id=project.id) }}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-pen-to-square me-1"></i> Edit
+        </a>
+        <form method="POST" action="{{ url_for('reports.generate_pdf', project_id=project.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-outline-primary rounded-pill px-3 btn-sm">
+                <i class="fa-solid fa-file-pdf me-1"></i> PDF Report
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('reports.generate_excel', project_id=project.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-outline-success rounded-pill px-3 btn-sm">
+                <i class="fa-solid fa-file-excel me-1"></i> Excel Export
+            </button>
+        </form>
+        <button type="button" class="btn btn-outline-danger rounded-pill px-3 btn-sm" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+            <i class="fa-solid fa-trash me-1"></i> Delete
+        </button>
+    </div>
+</div>
+
+<!-- Project Overview Card -->
+<div class="card-enterprise mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <h6 class="text-secondary text-uppercase fw-bold" style="font-size: 0.75rem;">Description</h6>
+                <p class="text-dark mb-3">{{ project.description or 'No detailed description provided.' }}</p>
+                <div class="d-flex flex-wrap gap-3 small">
+                    <div><span class="text-muted">Target URL:</span> <a href="{{ project.app_url }}" target="_blank" class="font-monospace text-primary text-decoration-none">{{ project.app_url }}</a></div>
+                    <div><span class="text-muted">Type:</span> <span class="fw-semibold">{{ project.project_type }}</span></div>
+                    <div><span class="text-muted">Created:</span> <span class="fw-semibold">{{ project.created_at|datetime_format('%b %d, %Y') }}</span></div>
+                </div>
+            </div>
+            <div class="col-md-4 border-start-md ps-md-4">
+                <h6 class="text-secondary text-uppercase fw-bold" style="font-size: 0.75rem;">Quick Operations</h6>
+                <div class="d-grid gap-2 mt-2">
+                    <a href="{{ url_for('automated_testing.launch') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary rounded-pill text-start px-3">
+                        <i class="fa-solid fa-play me-2"></i> Launch Selenium Automation
+                    </a>
+                    <a href="{{ url_for('image_comparison.workspace') }}?project_id={{ project.id }}" class="btn btn-sm btn-outline-dark rounded-pill text-start px-3">
+                        <i class="fa-solid fa-camera-retro me-2"></i> Upload Visual Comparison
+                    </a>
+                    <form method="POST" action="{{ url_for('security.run_scan') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="project_id" value="{{ project.id }}"/>
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100 rounded-pill text-start px-3">
+                            <i class="fa-solid fa-shield-virus me-2"></i> Run Security Baseline Audit
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nav Tabs -->
+<ul class="nav nav-tabs nav-fill mb-4" id="projectTab" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active fw-bold" id="plans-tab" data-bs-toggle="tab" data-bs-target="#plans" type="button">
+            <i class="fa-solid fa-clipboard-list me-1"></i> Test Plans ({{ test_plans|length }})
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-bold" id="exec-tab" data-bs-toggle="tab" data-bs-target="#exec" type="button">
+            <i class="fa-solid fa-vial-circle-check me-1"></i> Automated Runs ({{ executions|length }})
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-bold" id="visual-tab" data-bs-toggle="tab" data-bs-target="#visual" type="button">
+            <i class="fa-solid fa-camera-retro me-1"></i> Visual Regressions ({{ comparisons|length }})
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link fw-bold" id="sec-tab" data-bs-toggle="tab" data-bs-target="#sec" type="button">
+            <i class="fa-solid fa-shield-virus me-1"></i> Security Findings ({{ findings|length }})
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Contents -->
+<div class="tab-content" id="projectTabContent">
+    <!-- 1. Test Plans Tab -->
+    <div class="tab-pane fade show active" id="plans" role="tabpanel">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5>Registered Test Plans</h5>
+                <a href="{{ url_for('test_planning.create_plan') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary rounded-pill px-3">
+                    <i class="fa-solid fa-plus me-1"></i> Create Test Plan
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-enterprise">
+                    <thead>
+                        <tr>
+                            <th>Plan Name</th>
+                            <th>Environment</th>
+                            <th>Strategy</th>
+                            <th>Status</th>
+                            <th>Test Cases</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for plan in test_plans %}
+                        <tr>
+                            <td class="fw-bold">
+                                <a href="{{ url_for('test_planning.plan_details', plan_id=plan.id) }}" class="text-decoration-none text-dark hover-primary">
+                                    {{ plan.name }}
+                                </a>
+                            </td>
+                            <td><span class="badge bg-light text-secondary border">{{ plan.environment }}</span></td>
+                            <td class="small text-muted">{{ plan.test_strategy[:60] if plan.test_strategy else 'Default suite' }}...</td>
+                            <td><span class="badge {{ plan.status|status_badge }}">{{ plan.status }}</span></td>
+                            <td><span class="badge bg-secondary-subtle text-secondary">{{ plan.test_cases.count() }} cases</span></td>
+                            <td>
+                                <a href="{{ url_for('test_planning.plan_details', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                    Manage Plan
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No test plans defined yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Automated Runs Tab -->
+    <div class="tab-pane fade" id="exec" role="tabpanel">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5>Automated Execution Runs</h5>
+                <a href="{{ url_for('automated_testing.launch') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary rounded-pill px-3">
+                    <i class="fa-solid fa-play me-1"></i> New Test Run
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-enterprise">
+                    <thead>
+                        <tr>
+                            <th>Run ID</th>
+                            <th>Suite Name</th>
+                            <th>Pass / Fail</th>
+                            <th>Duration</th>
+                            <th>Executed At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ex in executions %}
+                        <tr>
+                            <td class="fw-bold">#{{ ex.id }}</td>
+                            <td>{{ ex.test_suite_name }}</td>
+                            <td>
+                                <span class="fw-semibold text-success">{{ ex.passed_tests }}</span> passed,
+                                <span class="fw-semibold text-danger">{{ ex.failed_tests }}</span> failed
+                            </td>
+                            <td>{{ "%.2f"|format(ex.duration) }}s</td>
+                            <td>{{ ex.start_time|datetime_format }}</td>
+                            <td>
+                                <a href="{{ url_for('automated_testing.results', execution_id=ex.id) }}" class="btn btn-sm btn-light border py-1 px-3 rounded-pill">
+                                    Results
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No automated test runs executed yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Visual Regressions Tab -->
+    <div class="tab-pane fade" id="visual" role="tabpanel">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5>Visual Regression Comparisons</h5>
+                <a href="{{ url_for('image_comparison.workspace') }}?project_id={{ project.id }}" class="btn btn-sm btn-primary rounded-pill px-3">
+                    <i class="fa-solid fa-camera me-1"></i> Compare Images
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-enterprise">
+                    <thead>
+                        <tr>
+                            <th>Comparison Name</th>
+                            <th>Pixel Similarity</th>
+                            <th>Difference %</th>
+                            <th>SSIM Score</th>
+                            <th>Regions</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cmp in comparisons %}
+                        <tr>
+                            <td class="fw-bold">{{ cmp.name }}</td>
+                            <td>
+                                <span class="badge bg-success-subtle text-success">
+                                    {{ "%.2f"|format(cmp.metric.pixel_similarity) if cmp.metric else '100.00' }}%
+                                </span>
+                            </td>
+                            <td>{{ "%.2f"|format(cmp.metric.difference_percentage) if cmp.metric else '0.00' }}%</td>
+                            <td>{{ "%.4f"|format(cmp.metric.ssim_score) if cmp.metric else '1.0000' }}</td>
+                            <td>{{ cmp.metric.changed_regions_count if cmp.metric else 0 }}</td>
+                            <td>
+                                <a href="{{ url_for('image_comparison.results', comparison_id=cmp.id) }}" class="btn btn-sm btn-light border py-1 px-3 rounded-pill">
+                                    Inspect
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No image comparisons recorded.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Security Findings Tab -->
+    <div class="tab-pane fade" id="sec" role="tabpanel">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5>Security Findings</h5>
+                <form method="POST" action="{{ url_for('security.run_scan') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="project_id" value="{{ project.id }}"/>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">
+                        <i class="fa-solid fa-shield-virus me-1"></i> Run Scan
+                    </button>
+                </form>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-enterprise">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Title</th>
+                            <th>Severity</th>
+                            <th>Affected URL</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for f in findings %}
+                        <tr>
+                            <td class="fw-bold">{{ f.finding_code }}</td>
+                            <td>{{ f.title }}</td>
+                            <td><span class="badge {{ f.severity|status_badge }}">{{ f.severity }}</span></td>
+                            <td class="small font-monospace text-muted">{{ f.affected_url }}</td>
+                            <td><span class="badge bg-secondary-subtle text-secondary">{{ f.status }}</span></td>
+                            <td>
+                                <a href="{{ url_for('security.finding_details', finding_id=f.id) }}" class="btn btn-sm btn-light border py-1 px-3 rounded-pill">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No security findings registered.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> Confirm Project Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete project <b>{{ project.name }}</b>?</p>
+                <div class="alert alert-warning small mb-0">
+                    <i class="fa-solid fa-circle-exclamation me-1"></i> This action permanently removes all associated test plans, test cases, automated runs, and visual comparisons.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('projects.delete', project_id=project.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">Permanently Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

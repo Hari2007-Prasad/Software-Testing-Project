@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Execution History & Activity Log{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Execution History</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">Platform Audit Trail & Execution History</h3>
+    </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="card-enterprise mb-4">
+    <div class="card-body py-3">
+        <form method="GET" action="{{ url_for('history.index') }}" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <input type="text" name="q" value="{{ search_q }}" class="form-control form-control-sm" placeholder="Search activity description...">
+            </div>
+            <div class="col-md-3">
+                <select name="project_id" class="form-select form-select-sm">
+                    <option value="">All Projects</option>
+                    {% for p in projects %}
+                    <option value="{{ p.id }}" {% if selected_project_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <input type="text" name="action" value="{{ action_filter }}" class="form-control form-control-sm" placeholder="Action filter...">
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-dark w-100 rounded-pill">Filter</button>
+                {% if search_q or selected_project_id or action_filter %}
+                <a href="{{ url_for('history.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill"><i class="fa-solid fa-xmark"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Activity Log Table -->
+<div class="card-enterprise">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Audit Trail Records ({{ logs|length }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Related Project</th>
+                    <th>Description</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="small text-muted font-monospace">{{ log.timestamp|datetime_format }}</td>
+                    <td class="fw-semibold">
+                        <i class="fa-solid fa-user-circle text-secondary me-1"></i>
+                        {{ log.user.username if log.user else 'System' }}
+                    </td>
+                    <td><span class="badge bg-secondary-subtle text-secondary">{{ log.action }}</span></td>
+                    <td>
+                        {% if log.project %}
+                        <small class="text-dark fw-semibold">{{ log.project.name }}</small>
+                        {% else %}
+                        <small class="text-muted">Global</small>
+                        {% endif %}
+                    </td>
+                    <td class="small text-secondary">{{ log.description }}</td>
+                    <td class="small font-monospace text-muted">{{ log.ip_address }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center py-5 text-muted">No activity records found matching filters.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

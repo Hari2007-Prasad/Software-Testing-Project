@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Execution Results #{{ execution.id }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('automated_testing.index') }}">Automated Testing</a></li>
+                <li class="breadcrumb-item active">Run #{{ execution.id }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold text-dark mb-0">{{ execution.test_suite_name }}</h3>
+            <span class="badge {{ execution.status|status_badge }}">{{ execution.status }}</span>
+            {% if analysis %}
+            <span class="badge {% if analysis.functional_status == 'PASS' %}bg-success{% elif analysis.functional_status == 'FAIL' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                Threshold: {{ analysis.functional_status }} ({{ analysis.functional_score }}%)
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('automated_testing.launch') }}?project_id={{ execution.project_id }}" class="btn btn-outline-primary rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-rotate-right me-1"></i> Rerun Suite
+        </a>
+        <a href="{{ url_for('projects.details', project_id=execution.project_id) }}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-arrow-left me-1"></i> Back to Project
+        </a>
+    </div>
+</div>
+
+<!-- Metrics Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2">
+        <div class="stat-card primary p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Total Scenarios</div>
+            <div class="stat-value fs-4 mt-1">{{ execution.total_tests }}</div>
+            <small class="text-muted">Target suite</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card success p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Passed Tests</div>
+            <div class="stat-value fs-4 mt-1 text-success">{{ execution.passed_tests }}</div>
+            <small class="text-success">{{ execution.pass_percentage }}% pass rate</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card {% if execution.failed_tests > 0 %}danger{% else %}primary{% endif %} p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Failed Tests</div>
+            <div class="stat-value fs-4 mt-1 text-danger">{{ execution.failed_tests }}</div>
+            <small class="text-muted">Defects discovered</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card warning p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Blocked Tests</div>
+            <div class="stat-value fs-4 mt-1 text-warning">{{ execution.blocked_tests }}</div>
+            <small class="text-muted">Prerequisites unmet</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card violet p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Total Duration</div>
+            <div class="stat-value fs-4 mt-1">{{ "%.2f"|format(execution.duration) }}s</div>
+            <small class="text-muted">Execution speed</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card teal p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Executed By</div>
+            <div class="stat-value fs-5 mt-1">{{ execution.executor.username if execution.executor else 'System' }}</div>
+            <small class="text-muted">{{ execution.start_time|datetime_format('%b %d') }}</small>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Test Scenario Results Table -->
+<div class="card-enterprise mb-4">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-list-check text-primary me-2"></i> Scenario Results ({{ results|length }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>Scenario</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                    <th>Observed Result & Error Details</th>
+                    <th>Evidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in results %}
+                <tr>
+                    <td class="fw-bold text-dark" style="max-width: 260px;">
+                        {{ r.test_name }}
+                    </td>
+                    <td><span class="badge bg-light text-secondary border">{{ r.category }}</span></td>
+                    <td><span class="badge {{ r.status|status_badge }}">{{ r.status }}</span></td>
+                    <td class="font-monospace small">{{ "%.2f"|format(r.duration) }}s</td>
+                    <td style="max-width: 380px;">
+                        <div class="small text-secondary">{{ r.actual_result or 'Executed cleanly' }}</div>
+                        {% if r.error_message %}
+                        <div class="alert alert-danger py-1 px-2 mt-1 small font-monospace mb-0" style="font-size: 0.75rem;">
+                            {{ r.error_message }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if r.screenshot_path %}
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0" data-bs-toggle="modal" data-bs-target="#shotModal_{{ r.id }}">
+                            <i class="fa-solid fa-camera me-1"></i> Screenshot
+                        </button>
+
+                        <!-- Screenshot Modal -->
+                        <div class="modal fade" id="shotModal_{{ r.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h6 class="modal-title fw-bold">{{ r.test_name }}</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body text-center p-0 bg-dark">
+                                        <img src="{{ url_for('image_comparison.view_image', folder='evidence', filename=r.screenshot_path|replace('evidence/', '')) }}" class="img-fluid" alt="Screenshot Evidence">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="text-muted small">None</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center py-4 text-muted">No individual test scenario records found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Execution Console Logs Accordion -->
+<div class="accordion mb-4" id="logAccordion">
+    <div class="accordion-item border rounded overflow-hidden">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed py-2 fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#logCollapse">
+                <i class="fa-solid fa-terminal text-primary me-2"></i> Complete Console Execution Logs
+            </button>
+        </h2>
+        <div id="logCollapse" class="accordion-collapse collapse" data-bs-parent="#logAccordion">
+            <div class="accordion-body bg-dark text-light p-0">
+                <pre class="terminal-log-box mb-0" style="height: 280px; border-radius: 0;">{{ execution.logs or 'No console logs captured.' }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

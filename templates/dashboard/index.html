@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}Overview Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <h3 class="fw-bold text-dark mb-1">Testing & Security Operations Center</h3>
+        <p class="text-secondary small mb-0">Live aggregated metrics across functional test suites, computer vision regression, and security baselines</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('automated_testing.launch') }}" class="btn btn-primary rounded-pill px-3 shadow-sm btn-sm">
+            <i class="fa-solid fa-play me-1"></i> Run Automated Tests
+        </a>
+        <a href="{{ url_for('image_comparison.workspace') }}" class="btn btn-outline-dark rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-camera-retro me-1"></i> New Visual Compare
+        </a>
+        <form method="POST" action="{{ url_for('security.run_scan') }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            {% if projects %}
+            <input type="hidden" name="project_id" value="{{ projects[0].id }}"/>
+            <button type="submit" class="btn btn-outline-danger rounded-pill px-3 btn-sm">
+                <i class="fa-solid fa-shield-virus me-1"></i> Scan Security Baseline
+            </button>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- 1. LIVE STATS CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card primary">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Testing Projects</div>
+                    <div class="stat-value">{{ stats.total_projects }}</div>
+                </div>
+                <div class="stat-icon"><i class="fa-solid fa-diagram-project"></i></div>
+            </div>
+            <div class="mt-2 text-muted small"><i class="fa-regular fa-clock me-1"></i> Active workspaces</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card teal">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Total Test Cases</div>
+                    <div class="stat-value">{{ stats.total_test_cases }}</div>
+                </div>
+                <div class="stat-icon"><i class="fa-solid fa-clipboard-list"></i></div>
+            </div>
+            <div class="mt-2 text-muted small"><i class="fa-solid fa-check-double me-1"></i> {{ stats.passed_tests }} passed</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card success">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Pass Percentage</div>
+                    <div class="stat-value">{{ stats.overall_pass_rate }}%</div>
+                </div>
+                <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
+            </div>
+            <div class="mt-2 text-muted small"><i class="fa-solid fa-bolt me-1"></i> {{ stats.total_executed_tests }} tests executed</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card danger">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Security Findings</div>
+                    <div class="stat-value">{{ stats.total_security_findings }}</div>
+                </div>
+                <div class="stat-icon"><i class="fa-solid fa-shield-virus"></i></div>
+            </div>
+            <div class="mt-2 text-muted small"><span class="text-danger fw-bold">{{ stats.critical_findings }} Critical</span>, {{ stats.high_findings }} High</div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card warning">
+            <div class="stat-label">Visual Regression Runs</div>
+            <div class="stat-value fs-3">{{ stats.total_comparisons }}</div>
+            <small class="text-muted">OpenCV comparisons</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card violet">
+            <div class="stat-label">Avg Visual Similarity</div>
+            <div class="stat-value fs-3">{{ stats.avg_visual_similarity }}%</div>
+            <small class="text-muted">Pixel-level fidelity</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card danger">
+            <div class="stat-label">Failed Tests</div>
+            <div class="stat-value fs-3">{{ stats.failed_tests }}</div>
+            <small class="text-danger"><i class="fa-solid fa-circle-exclamation me-1"></i> Requires triage</small>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card primary">
+            <div class="stat-label">Blocked Tests</div>
+            <div class="stat-value fs-3">{{ stats.blocked_tests }}</div>
+            <small class="text-muted">Unmet preconditions</small>
+        </div>
+    </div>
+</div>
+
+<!-- 2. ANALYTICS CHARTS -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-chart-line text-primary me-2"></i> Test Execution Velocity & Trends</h5>
+                <span class="badge bg-light text-secondary border">Recent Sessions</span>
+            </div>
+            <div class="card-body">
+                <canvas id="executionTrendChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-chart-pie text-success me-2"></i> Pass / Fail Distribution</h5>
+                <span class="badge bg-light text-secondary border">Execution Ratio</span>
+            </div>
+            <div class="card-body">
+                <canvas id="passFailPieChart" height="240"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. RECENT ACTIVITY & FINDINGS -->
+<div class="row g-4 mb-4">
+    <!-- Recent Executions -->
+    <div class="col-lg-7">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-vial-circle-check text-primary me-2"></i> Recent Test Executions</h5>
+                <a href="{{ url_for('automated_testing.index') }}" class="btn btn-sm btn-link text-decoration-none">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-enterprise">
+                    <thead>
+                        <tr>
+                            <th>Execution ID</th>
+                            <th>Suite Name</th>
+                            <th>Passed / Total</th>
+                            <th>Status</th>
+                            <th>Duration</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ex in recent_executions %}
+                        <tr>
+                            <td class="fw-bold">#{{ ex.id }}</td>
+                            <td>{{ ex.test_suite_name }}</td>
+                            <td>
+                                <span class="fw-semibold text-success">{{ ex.passed_tests }}</span> / {{ ex.total_tests }}
+                            </td>
+                            <td>
+                                <span class="badge {{ ex.status|status_badge }}">{{ ex.status }}</span>
+                            </td>
+                            <td>{{ "%.2f"|format(ex.duration) }}s</td>
+                            <td>
+                                <a href="{{ url_for('automated_testing.results', execution_id=ex.id) }}" class="btn btn-sm btn-light border py-0 px-2">
+                                    <i class="fa-solid fa-eye text-primary"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No test execution records recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Security Findings -->
+    <div class="col-lg-5">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-shield-virus text-danger me-2"></i> Security Baseline Findings</h5>
+                <a href="{{ url_for('security.index') }}" class="btn btn-sm btn-link text-decoration-none">Audit Center</a>
+            </div>
+            <div class="p-3">
+                {% for f in recent_findings %}
+                <div class="p-2 border-bottom d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge {{ f.severity|status_badge }}">{{ f.severity }}</span>
+                            <span class="fw-semibold small text-dark">{{ f.title }}</span>
+                        </div>
+                        <small class="text-muted font-monospace" style="font-size: 0.75rem;">{{ f.affected_url }}</small>
+                    </div>
+                    <a href="{{ url_for('security.finding_details', finding_id=f.id) }}" class="btn btn-sm btn-light border py-1 px-2">
+                        <i class="fa-solid fa-chevron-right text-secondary"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted small">No security vulnerabilities discovered.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. COMPUTER VISION COMPARISONS & ACTIVITY STREAM -->
+<div class="row g-4">
+    <!-- Visual Regression -->
+    <div class="col-lg-6">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-camera-retro text-violet me-2"></i> Recent Image Comparisons</h5>
+                <a href="{{ url_for('image_comparison.index') }}" class="btn btn-sm btn-link text-decoration-none">All Images</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-enterprise">
+                    <thead>
+                        <tr>
+                            <th>Comparison</th>
+                            <th>Similarity</th>
+                            <th>Diff %</th>
+                            <th>SSIM</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cmp in recent_comparisons %}
+                        <tr>
+                            <td class="fw-semibold">{{ cmp.name }}</td>
+                            <td>
+                                <span class="badge bg-success-subtle text-success">
+                                    {{ "%.2f"|format(cmp.metric.pixel_similarity) if cmp.metric else '100.00' }}%
+                                </span>
+                            </td>
+                            <td>{{ "%.2f"|format(cmp.metric.difference_percentage) if cmp.metric else '0.00' }}%</td>
+                            <td>{{ "%.4f"|format(cmp.metric.ssim_score) if cmp.metric else '1.0000' }}</td>
+                            <td>
+                                <a href="{{ url_for('image_comparison.results', comparison_id=cmp.id) }}" class="btn btn-sm btn-light border py-0 px-2">
+                                    <i class="fa-solid fa-magnifying-glass text-primary"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="text-center py-4 text-muted">No image comparisons executed yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Activity Feed -->
+    <div class="col-lg-6">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-clock-rotate-left text-info me-2"></i> Audit & Activity Stream</h5>
+                <a href="{{ url_for('history.index') }}" class="btn btn-sm btn-link text-decoration-none">Full Audit</a>
+            </div>
+            <div class="p-3" style="max-height: 280px; overflow-y: auto;">
+                {% for act in recent_activities %}
+                <div class="d-flex align-items-start gap-3 py-2 border-bottom">
+                    <div class="rounded-circle bg-light p-2 text-primary" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold small text-dark">{{ act.action }}</span>
+                            <small class="text-muted" style="font-size: 0.72rem;">{{ act.timestamp|datetime_format('%H:%M:%S') }}</small>
+                        </div>
+                        <small class="text-secondary d-block">{{ act.description }}</small>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted small">No audit activity logged.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 1. Trend Line Chart
+    const trendCtx = document.getElementById('executionTrendChart');
+    if (trendCtx) {
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_data.trend_labels|tojson }},
+                datasets: [
+                    {
+                        label: 'Passed Tests',
+                        data: {{ chart_data.trend_passed|tojson }},
+                        borderColor: '#16a34a',
+                        backgroundColor: 'rgba(22, 163, 74, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Failed Tests',
+                        data: {{ chart_data.trend_failed|tojson }},
+                        borderColor: '#dc2626',
+                        backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // 2. Pass/Fail Donut Chart
+    const pieCtx = document.getElementById('passFailPieChart');
+    if (pieCtx) {
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Passed', 'Failed', 'Blocked'],
+                datasets: [{
+                    data: {{ chart_data.distribution|tojson }},
+                    backgroundColor: ['#16a34a', '#dc2626', '#f59e0b'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                },
+                cutout: '68%'
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

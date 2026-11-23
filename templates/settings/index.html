@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Settings</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">System Settings & Platform Architecture</h3>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card-enterprise mb-4">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-sliders text-primary me-2"></i> Environment & Engine Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('settings.index') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Default Digital Learning Target URL</label>
+                        <input type="text" class="form-control font-monospace" value="{{ settings_info.default_target_url }}" readonly>
+                        <small class="text-muted">Target host inspected by default in automated tests and OWASP baseline audits.</small>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Selenium Execution Engine</label>
+                            <input type="text" class="form-control" value="Chrome WebDriver (Headless={{ settings_info.selenium_headless }})" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Browser Interaction Timeout</label>
+                            <input type="text" class="form-control" value="{{ settings_info.selenium_timeout }}" readonly>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Database Backend</label>
+                            <input type="text" class="form-control font-monospace small" value="{{ settings_info.database_uri }}" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Maximum Upload Payload</label>
+                            <input type="text" class="form-control" value="{{ settings_info.max_content_length }}" readonly>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-top text-end">
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">
+                            Save Preferences
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5><i class="fa-solid fa-shield-halved text-success me-2"></i> Session Security Baseline</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                    <span class="small fw-semibold">HttpOnly Cookie Flag</span>
+                    <span class="badge bg-success">Enforced</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                    <span class="small fw-semibold">SameSite Cookie Policy</span>
+                    <span class="badge bg-primary">{{ settings_info.session_cookie_samesite }}</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                    <span class="small fw-semibold">CSRF Protection</span>
+                    <span class="badge bg-success">Active</span>
+                </div>
+                <div class="d-flex align-items-center justify-content-between py-2">
+                    <span class="small fw-semibold">Computer Vision Pipeline</span>
+                    <span class="badge bg-info text-dark">OpenCV 4.10 + SSIM</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

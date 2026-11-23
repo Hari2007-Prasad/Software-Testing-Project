@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Project - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('projects.index') }}">Projects</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('projects.details', project_id=project.id) }}">{{ project.name }}</a></li>
+                <li class="breadcrumb-item active">Edit</li>
+            </ol>
+        </nav>
+        
+        <div class="card-enterprise">
+            <div class="card-header">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-pen-to-square text-primary me-2"></i> Edit Project Configuration</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('projects.edit', project_id=project.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Project Name *</label>
+                        <input type="text" name="name" class="form-control" value="{{ project.name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-secondary">Application Target URL *</label>
+                        <input type="url" name="app_url" class="form-control" value="{{ project.app_url }}" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Project Type</label>
+                            <select name="project_type" class="form-select">
+                                <option value="Digital Learning Platform" {% if project.project_type == 'Digital Learning Platform' %}selected{% endif %}>Digital Learning Platform</option>
+                                <option value="Web Portal LMS" {% if project.project_type == 'Web Portal LMS' %}selected{% endif %}>Web Portal LMS</option>
+                                <option value="Educational SaaS" {% if project.project_type == 'Educational SaaS' %}selected{% endif %}>Educational SaaS</option>
+                                <option value="Enterprise Web App" {% if project.project_type == 'Enterprise Web App' %}selected{% endif %}>Enterprise Web App</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Environment</label>
+                            <select name="environment" class="form-select">
+                                <option value="Development" {% if project.environment == 'Development' %}selected{% endif %}>Development</option>
+                                <option value="Staging" {% if project.environment == 'Staging' %}selected{% endif %}>Staging</option>
+                                <option value="Production" {% if project.environment == 'Production' %}selected{% endif %}>Production</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-secondary">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="Active" {% if project.status == 'Active' %}selected{% endif %}>Active</option>
+                                <option value="Archived" {% if project.status == 'Archived' %}selected{% endif %}>Archived</option>
+                                <option value="Completed" {% if project.status == 'Completed' %}selected{% endif %}>Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-secondary">Description & Notes</label>
+                        <textarea name="description" class="form-control" rows="4">{{ project.description }}</textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="{{ url_for('projects.details', project_id=project.id) }}" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 shadow-sm">
+                            <i class="fa-solid fa-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

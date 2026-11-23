@@ -1,0 +1,50 @@
+{% extends "lms/base_lms.html" %}
+
+{% block title %}About Us{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="bg-white p-5 rounded-4 border shadow-sm">
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 mb-3">Academic Excellence</span>
+                <h2 class="fw-bold text-dark mb-4">Empowering Digital Learners Through Rigorous Engineering</h2>
+                
+                <p class="text-secondary lead mb-4">
+                    The Digital Learning Platform provides cutting-edge online education built on modern instructional design principles, continuous quality verification, and secure cloud software engineering.
+                </p>
+
+                <div class="row g-4 my-4">
+                    <div class="col-md-4">
+                        <div class="p-3 border rounded bg-light">
+                            <h5 class="fw-bold text-dark mb-1">99.8%</h5>
+                            <small class="text-secondary">Platform Availability</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 border rounded bg-light">
+                            <h5 class="fw-bold text-dark mb-1">Zero-Trust</h5>
+                            <small class="text-secondary">Security Baseline</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 border rounded bg-light">
+                            <h5 class="fw-bold text-dark mb-1">Industry 4.0</h5>
+                            <small class="text-secondary">Practical Curriculum</small>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="fw-bold text-dark mb-3">Testing & Continuous Quality Assurance</h4>
+                <p class="text-secondary">
+                    Our platform is rigorously tested using automated Selenium test suites, OpenCV visual regression algorithms, and authorized OWASP baseline audits to guarantee exceptional uptime, visual fidelity, and data protection for all students and instructors.
+                </p>
+
+                <div class="mt-4 pt-3 border-top">
+                    <a href="{{ url_for('lms.course_listing') }}" class="btn btn-primary rounded-pill px-4">Browse Available Courses</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

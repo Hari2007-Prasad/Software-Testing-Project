@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Automated Testing Engine{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Automated Testing</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">Selenium Automated Testing Engine</h3>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('automated_testing.launch') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="fa-solid fa-play me-1"></i> Launch Automation Suite
+        </a>
+    </div>
+</div>
+
+<!-- Test Suite Scenarios Overview Card -->
+<div class="card-enterprise mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="fa-solid fa-list-check text-primary me-2"></i> Standard LMS Regression Scenarios ({{ scenarios|length }})</h5>
+        <span class="badge bg-light text-secondary border">Selenium Chrome WebDriver</span>
+    </div>
+    <div class="card-body">
+        <p class="text-secondary small mb-3">15 end-to-end automated scenarios verifying authentication, student portal dashboard, course catalog, interactive enrollments, and form validation.</p>
+        <div class="row g-2">
+            {% for code, sc in scenarios.items() %}
+            <div class="col-md-6 col-lg-4">
+                <div class="p-2 border rounded bg-light d-flex align-items-start gap-2 h-100">
+                    <span class="badge bg-primary-subtle text-primary font-monospace mt-1" style="font-size: 0.72rem;">{{ code }}</span>
+                    <div>
+                        <div class="fw-bold small text-dark">{{ sc.name }}</div>
+                        <small class="text-secondary" style="font-size: 0.75rem;">{{ sc.category }}</small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Execution History Table -->
+<div class="card-enterprise">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i> Automated Execution Runs ({{ executions|length }})</h5>
+        <form method="GET" action="{{ url_for('automated_testing.index') }}">
+            <select name="project_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Projects</option>
+                {% for p in projects %}
+                <option value="{{ p.id }}" {% if selected_project_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>Run ID</th>
+                    <th>Suite Name</th>
+                    <th>Project</th>
+                    <th>Tests</th>
+                    <th>Passed</th>
+                    <th>Failed</th>
+                    <th>Blocked</th>
+                    <th>Pass Rate</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ex in executions %}
+                <tr>
+                    <td class="fw-bold font-monospace">#{{ ex.id }}</td>
+                    <td class="fw-semibold">
+                        <a href="{{ url_for('automated_testing.results', execution_id=ex.id) }}" class="text-dark text-decoration-none hover-primary">
+                            {{ ex.test_suite_name }}
+                        </a>
+                    </td>
+                    <td><small class="text-secondary">{{ ex.project.name }}</small></td>
+                    <td>{{ ex.total_tests }}</td>
+                    <td><span class="text-success fw-bold">{{ ex.passed_tests }}</span></td>
+                    <td><span class="text-danger fw-bold">{{ ex.failed_tests }}</span></td>
+                    <td><span class="text-muted">{{ ex.blocked_tests }}</span></td>
+                    <td>
+                        <span class="badge {% if ex.pass_percentage >= 90 %}bg-success-subtle text-success{% else %}bg-danger-subtle text-danger{% endif %} fw-bold">
+                            {{ ex.pass_percentage }}%
+                        </span>
+                    </td>
+                    <td>{{ "%.2f"|format(ex.duration) }}s</td>
+                    <td>
+                        {% if ex.status == 'Running' %}
+                        <span class="badge bg-info text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i> Running</span>
+                        {% else %}
+                        <span class="badge {{ ex.status|status_badge }}">{{ ex.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ex.status == 'Running' %}
+                        <a href="{{ url_for('automated_testing.live_execution', execution_id=ex.id) }}" class="btn btn-sm btn-info rounded-pill px-3">
+                            Monitor Live
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('automated_testing.results', execution_id=ex.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            View Results
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="11" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-vial-circle-check fa-2x mb-3 text-secondary d-block"></i>
+                        No automated test executions recorded yet. Click 'Launch Automation Suite' to start.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

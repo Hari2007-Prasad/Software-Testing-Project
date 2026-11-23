@@ -1,0 +1,86 @@
+{% extends "lms/base_lms.html" %}
+
+{% block title %}Course Catalog{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header & Search -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 pb-3 border-bottom">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Course Catalog & Technical Curriculums</h2>
+            <p class="text-secondary small mb-0">Browse specialized courses in software engineering, security, and automation</p>
+        </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="card bg-white border rounded-3 p-3 mb-4 shadow-sm">
+        <form method="GET" action="{{ url_for('lms.course_listing') }}" class="row g-2 align-items-center">
+            <div class="col-md-7">
+                <div class="input-group">
+                    <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" name="q" value="{{ query_str }}" class="form-control border-start-0" placeholder="Search by course title or keyword (e.g. Security, Flask, QA)...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select name="category" class="form-select">
+                    <option value="">All Disciplines</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 rounded-pill">Search</button>
+                {% if query_str or selected_category %}
+                <a href="{{ url_for('lms.course_listing') }}" class="btn btn-outline-secondary rounded-pill"><i class="fa-solid fa-xmark"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Course Cards Grid -->
+    <div class="row g-4">
+        {% for c in courses %}
+        <div class="col-md-6 col-lg-3">
+            <div class="course-card h-100 d-flex flex-column bg-white">
+                <div class="course-banner">
+                    <i class="fa-solid {% if 'Security' in c.title %}fa-shield-halved{% elif 'Flask' in c.title %}fa-code{% elif 'Automated' in c.title %}fa-vial{% else %}fa-brain{% endif %} text-light opacity-50"></i>
+                </div>
+                <div class="card-body flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-primary-subtle text-primary" style="font-size: 0.7rem;">{{ c.category }}</span>
+                        <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.7rem;">{{ c.level }}</span>
+                    </div>
+                    <h6 class="fw-bold mb-1">
+                        <a href="{{ url_for('lms.course_details', course_id=c.id) }}" class="text-dark text-decoration-none">
+                            {{ c.title }}
+                        </a>
+                    </h6>
+                    <small class="text-muted d-block mb-2"><i class="fa-solid fa-chalkboard-user me-1"></i> {{ c.instructor }}</small>
+                    <p class="text-secondary small mb-3">
+                        {{ c.description[:90] }}...
+                    </p>
+                </div>
+                <div class="card-footer bg-transparent border-top p-3 d-flex justify-content-between align-items-center">
+                    <small class="text-muted"><i class="fa-regular fa-clock me-1"></i> {{ c.duration }}</small>
+                    <a href="{{ url_for('lms.course_details', course_id=c.id) }}" class="btn btn-sm btn-primary rounded-pill px-3">
+                        View Details
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card bg-white border text-center p-5 rounded-4 shadow-sm">
+                <i class="fa-solid fa-magnifying-glass fa-2x mb-3 text-secondary d-block"></i>
+                <h5 class="fw-bold">No Courses Matched</h5>
+                <p class="text-secondary small mb-3">No learning tracks found for "<b>{{ query_str }}</b>". Try another search query.</p>
+                <div>
+                    <a href="{{ url_for('lms.course_listing') }}" class="btn btn-outline-primary rounded-pill px-4">Clear Filters</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

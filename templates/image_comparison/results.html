@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+
+{% block title %}{{ comparison.name }} - Visual Comparison Results{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('image_comparison.index') }}">Image Comparison</a></li>
+                <li class="breadcrumb-item active">{{ comparison.name }}</li>
+            </ol>
+        </nav>
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold text-dark mb-0">{{ comparison.name }}</h3>
+            <span class="badge {{ comparison.status|status_badge }}">{{ comparison.status }}</span>
+            {% if analysis %}
+            <span class="badge {% if analysis.visual_status == 'PASS' %}bg-success{% elif analysis.visual_status == 'FAIL' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                Threshold: {{ analysis.visual_status }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('image_comparison.workspace') }}" class="btn btn-outline-primary rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> New Comparison
+        </a>
+        <a href="{{ url_for('image_comparison.view_image', folder='processed', filename=comparison.overlay_path) }}" download class="btn btn-outline-dark rounded-pill px-3 btn-sm">
+            <i class="fa-solid fa-download me-1"></i> Download Artifacts
+        </a>
+    </div>
+</div>
+
+<!-- 1. KEY METRICS STATS ROW -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2">
+        <div class="stat-card success p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Pixel Similarity</div>
+            <div class="stat-value fs-4 mt-1 text-success">
+                {{ "%.2f"|format(metric.pixel_similarity) if metric else '100.00' }}%
+            </div>
+            <small class="text-muted">100 - Diff %</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card {% if metric and metric.difference_percentage > 2.0 %}danger{% else %}primary{% endif %} p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Difference Pct</div>
+            <div class="stat-value fs-4 mt-1">
+                {{ "%.2f"|format(metric.difference_percentage) if metric else '0.00' }}%
+            </div>
+            <small class="text-muted">(Changed / Total) × 100</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card violet p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">SSIM Score</div>
+            <div class="stat-value fs-4 mt-1">
+                {{ "%.4f"|format(metric.ssim_score) if metric else '1.0000' }}
+            </div>
+            <small class="text-muted">Structural fidelity</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card warning p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Changed Regions</div>
+            <div class="stat-value fs-4 mt-1">
+                {{ metric.changed_regions_count if metric else 0 }}
+            </div>
+            <small class="text-muted">Bounded defect clusters</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card teal p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Changed Pixels</div>
+            <div class="stat-value fs-4 mt-1">
+                {{ metric.changed_pixels if metric else 0 }}
+            </div>
+            <small class="text-muted">of {{ metric.total_pixels if metric else 0 }} px</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card primary p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Execution Time</div>
+            <div class="stat-value fs-4 mt-1">
+                {{ "%.3f"|format(metric.processing_duration) if metric else '0.000' }}s
+            </div>
+            <small class="text-muted">OpenCV pipeline</small>
+        </div>
+    </div>
+</div>
+
+<!-- 2. INTERACTIVE VISUAL INSPECTION TABS -->
+<div class="card-enterprise mb-4">
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <h5 class="mb-0"><i class="fa-solid fa-eye text-primary me-2"></i> Computer Vision Visual Artifacts</h5>
+        
+        <ul class="nav nav-pills" id="visualTabs" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active btn-sm py-1 px-3 fw-semibold" id="tab-montage-btn" data-bs-toggle="pill" data-bs-target="#tab-montage" type="button">
+                    Montage
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link btn-sm py-1 px-3 fw-semibold" id="tab-bbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bbox" type="button">
+                    Bounding Boxes
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link btn-sm py-1 px-3 fw-semibold" id="tab-overlay-btn" data-bs-toggle="pill" data-bs-target="#tab-overlay" type="button">
+                    Diff Overlay
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link btn-sm py-1 px-3 fw-semibold" id="tab-mask-btn" data-bs-toggle="pill" data-bs-target="#tab-mask" type="button">
+                    Binary Mask
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link btn-sm py-1 px-3 fw-semibold" id="tab-edge-btn" data-bs-toggle="pill" data-bs-target="#tab-edge" type="button">
+                    Edge Map
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body p-0">
+        <div class="tab-content" id="visualTabsContent">
+            <!-- 1. Montage View -->
+            <div class="tab-pane fade show active p-3" id="tab-montage" role="tabpanel">
+                <div class="image-compare-box">
+                    <img src="{{ url_for('image_comparison.view_image', folder='processed', filename=comparison.diff_image_path|replace('diff_', 'montage_')) }}" alt="Montage Comparison">
+                </div>
+                <div class="text-center text-muted small mt-2">
+                    Tri-panel layout: <b>Reference Baseline</b> (Left) | <b>Actual Candidate</b> (Center) | <b>Detected Difference Overlay</b> (Right)
+                </div>
+            </div>
+
+            <!-- 2. Bounding Boxes View -->
+            <div class="tab-pane fade p-3" id="tab-bbox" role="tabpanel">
+                <div class="image-compare-box">
+                    <img src="{{ url_for('image_comparison.view_image', folder='processed', filename=comparison.bbox_path) }}" alt="Bounding Boxes">
+                </div>
+                <div class="text-center text-muted small mt-2">
+                    Localized defect bounding boxes with region identifiers and pixel dimensions.
+                </div>
+            </div>
+
+            <!-- 3. Diff Overlay View -->
+            <div class="tab-pane fade p-3" id="tab-overlay" role="tabpanel">
+                <div class="image-compare-box">
+                    <img src="{{ url_for('image_comparison.view_image', folder='processed', filename=comparison.overlay_path) }}" alt="Diff Overlay">
+                </div>
+                <div class="text-center text-muted small mt-2">
+                    Actual candidate screenshot with semi-transparent red highlights on changed pixels.
+                </div>
+            </div>
+
+            <!-- 4. Binary Mask View -->
+            <div class="tab-pane fade p-3" id="tab-mask" role="tabpanel">
+                <div class="image-compare-box">
+                    <img src="{{ url_for('image_comparison.view_image', folder='processed', filename=comparison.mask_path) }}" alt="Binary Difference Mask">
+                </div>
+                <div class="text-center text-muted small mt-2">
+                    Binary threshold difference mask (White = Changed Pixels, Black = Identical Pixels).
+                </div>
+            </div>
+
+            <!-- 5. Edge Map View -->
+            <div class="tab-pane fade p-3" id="tab-edge" role="tabpanel">
+                <div class="image-compare-box">
+                    <img src="{{ url_for('image_comparison.view_image', folder='processed', filename=comparison.edge_path) }}" alt="Canny Edge Comparison">
+                </div>
+                <div class="text-center text-muted small mt-2">
+                    Canny structural edge map: <span class="text-success fw-bold">Green = Matching Edges</span> | <span class="text-danger fw-bold">Red = Altered/Added Edges</span>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. DETECTED CHANGED REGIONS TABLE -->
+<div class="card-enterprise">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-vector-square text-primary me-2"></i> Detected Defect Regions ({{ regions|length }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>Region #</th>
+                    <th>Coordinates (X, Y)</th>
+                    <th>Dimensions (W × H)</th>
+                    <th>Bounding Area</th>
+                    <th>Contour Area</th>
+                    <th>Aspect Ratio</th>
+                    <th>Visual Impact</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in regions %}
+                <tr>
+                    <td class="fw-bold font-monospace">Region #{{ r.id }}</td>
+                    <td>({{ r.x }}, {{ r.y }})</td>
+                    <td>{{ r.width }} × {{ r.height }} px</td>
+                    <td>{{ r.area }} sq px</td>
+                    <td>{{ r.contour_area }} sq px</td>
+                    <td>{{ r.aspect_ratio }}</td>
+                    <td>
+                        <span class="badge {% if r.severity == 'High' %}bg-danger{% elif r.severity == 'Medium' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                            {{ r.severity }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-success fw-semibold">
+                        <i class="fa-solid fa-check-double me-2"></i> No visual defects or altered regions detected! Images are identical within configured thresholds.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

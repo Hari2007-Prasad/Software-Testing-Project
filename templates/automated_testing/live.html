@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Live Execution #{{ execution.id }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-2">
+                <li class="breadcrumb-item"><a href="{{ url_for('automated_testing.index') }}">Automated Testing</a></li>
+                <li class="breadcrumb-item active">Execution #{{ execution.id }}</li>
+            </ol>
+        </nav>
+
+        <div class="card-enterprise mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="fw-bold mb-0">
+                        <i class="fa-solid fa-spinner fa-spin text-primary me-2" id="spinnerIcon"></i>
+                        Live Execution Session #{{ execution.id }}
+                    </h5>
+                    <small class="text-secondary">{{ execution.test_suite_name }} | {{ execution.project.name }}</small>
+                </div>
+                <span class="badge bg-primary px-3 py-2 fs-6" id="statusBadge">{{ execution.status }}</span>
+            </div>
+            <div class="card-body">
+                <!-- Real-time Progress Bar -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-bold text-secondary" id="currentTestLabel">Initializing browser...</span>
+                        <span class="small fw-bold text-primary" id="progressPctLabel">0%</span>
+                    </div>
+                    <div class="progress" style="height: 12px; border-radius: 6px;">
+                        <div id="liveProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Live Counters -->
+                <div class="row g-3 text-center mb-4">
+                    <div class="col-3">
+                        <div class="p-3 border rounded bg-light">
+                            <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Total Tests</span>
+                            <span class="fs-4 fw-bold text-dark" id="countTotal">{{ execution.total_tests }}</span>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="p-3 border rounded bg-light">
+                            <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Passed</span>
+                            <span class="fs-4 fw-bold text-success" id="countPassed">0</span>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="p-3 border rounded bg-light">
+                            <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Failed</span>
+                            <span class="fs-4 fw-bold text-danger" id="countFailed">0</span>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="p-3 border rounded bg-light">
+                            <span class="text-uppercase fw-bold text-muted d-block" style="font-size: 0.72rem;">Blocked</span>
+                            <span class="fs-4 fw-bold text-warning" id="countBlocked">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Terminal Console Log -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-secondary text-uppercase"><i class="fa-solid fa-terminal me-1"></i> Live Execution Console</span>
+                        <span class="small text-muted font-monospace" id="pollStatus">Streaming live logs...</span>
+                    </div>
+                    <div class="terminal-log-box" id="terminalBox">
+                        [00:00:00] Initializing automated execution harness...
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="text-center pt-2" id="actionArea">
+                    <span class="text-muted small me-3"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> Tests are actively executing in the background...</span>
+                    <a href="{{ url_for('automated_testing.results', execution_id=execution.id) }}" class="btn btn-outline-secondary rounded-pill px-4 btn-sm">
+                        View Intermediate Results
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const executionId = {{ execution.id }};
+    const terminalBox = document.getElementById('terminalBox');
+    const progressBar = document.getElementById('liveProgressBar');
+    const progressLabel = document.getElementById('progressPctLabel');
+    const currentTestLabel = document.getElementById('currentTestLabel');
+    const countPassed = document.getElementById('countPassed');
+    const countFailed = document.getElementById('countFailed');
+    const countBlocked = document.getElementById('countBlocked');
+    const countTotal = document.getElementById('countTotal');
+    const statusBadge = document.getElementById('statusBadge');
+    const actionArea = document.getElementById('actionArea');
+    const spinnerIcon = document.getElementById('spinnerIcon');
+
+    let pollInterval = setInterval(fetchProgress, 1200);
+
+    function fetchProgress() {
+        fetch(`/automated-testing/progress/${executionId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data) return;
+
+                // Update Progress bar
+                const pct = data.progress_pct || 0;
+                progressBar.style.width = pct + '%';
+                progressLabel.innerText = pct + '%';
+
+                if (data.current_test) {
+                    currentTestLabel.innerText = data.current_test;
+                }
+
+                if (data.total !== undefined) countTotal.innerText = data.total;
+                if (data.passed !== undefined) countPassed.innerText = data.passed;
+                if (data.failed !== undefined) countFailed.innerText = data.failed;
+                if (data.blocked !== undefined) countBlocked.innerText = data.blocked;
+
+                // Update Logs
+                if (data.logs && data.logs.length > 0) {
+                    terminalBox.innerHTML = data.logs.map(l => `<div>${escapeHtml(l)}</div>`).join('');
+                    terminalBox.scrollTop = terminalBox.scrollHeight;
+                }
+
+                // Check Completion
+                if (data.status === 'Completed' || data.status === 'Failed' || data.status === 'Aborted') {
+                    clearInterval(pollInterval);
+                    progressBar.classList.remove('progress-bar-animated');
+                    spinnerIcon.classList.remove('fa-spin', 'fa-spinner');
+                    spinnerIcon.classList.add(data.status === 'Completed' ? 'fa-circle-check' : 'fa-circle-xmark');
+                    spinnerIcon.className = data.status === 'Completed' ? 'fa-solid fa-circle-check text-success me-2' : 'fa-solid fa-circle-xmark text-danger me-2';
+
+                    statusBadge.innerText = data.status;
+                    statusBadge.className = data.status === 'Completed' ? 'badge bg-success px-3 py-2 fs-6' : 'badge bg-danger px-3 py-2 fs-6';
+                    currentTestLabel.innerText = "Suite execution finished.";
+
+                    actionArea.innerHTML = `
+                        <div class="alert alert-success d-inline-block py-2 px-4 rounded-pill shadow-sm mb-3">
+                            <i class="fa-solid fa-check-circle me-1"></i> Execution completed! All test results and evidence recorded.
+                        </div>
+                        <div>
+                            <a href="/automated-testing/results/${executionId}" class="btn btn-primary rounded-pill px-5 shadow">
+                                View Comprehensive Results & Screenshots <i class="fa-solid fa-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    `;
+                }
+            })
+            .catch(err => console.error("Poll error:", err));
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    fetchProgress();
+});
+</script>
+{% endblock %}

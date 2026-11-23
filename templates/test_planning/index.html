@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Test Planning Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Test Planning</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">Test Planning Dashboard</h3>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('test_planning.create_plan') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="fa-solid fa-plus me-1"></i> Create Test Plan
+        </a>
+    </div>
+</div>
+
+<!-- Test Planning Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-2">
+        <div class="stat-card primary p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Total Plans</div>
+            <div class="stat-value fs-4 mt-1">{{ stats.total_plans }}</div>
+            <small class="text-muted">Structured plans</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card teal p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Total Test Cases</div>
+            <div class="stat-value fs-4 mt-1">{{ stats.total_cases }}</div>
+            <small class="text-muted">Repository size</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card warning p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Pending Cases</div>
+            <div class="stat-value fs-4 mt-1">{{ stats.pending_cases }}</div>
+            <small class="text-muted">Not yet run</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card primary p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Executed Cases</div>
+            <div class="stat-value fs-4 mt-1">{{ stats.executed_cases }}</div>
+            <small class="text-muted">Tracked runs</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card success p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Pass Rate</div>
+            <div class="stat-value fs-4 mt-1">{{ stats.pass_rate }}%</div>
+            <small class="text-success">{{ stats.passed_cases }} passed</small>
+        </div>
+    </div>
+    <div class="col-6 col-lg-2">
+        <div class="stat-card danger p-3">
+            <div class="stat-label" style="font-size: 0.72rem;">Failure Rate</div>
+            <div class="stat-value fs-4 mt-1">{{ stats.failure_rate }}%</div>
+            <small class="text-danger">{{ stats.failed_cases }} failed</small>
+        </div>
+    </div>
+</div>
+
+<!-- Test Plans Listing -->
+<div class="card-enterprise">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-clipboard-list text-primary me-2"></i> All Test Plans</h5>
+        <div class="d-flex gap-2">
+            <form method="GET" action="{{ url_for('test_planning.index') }}" class="d-flex align-items-center gap-2">
+                <select name="project_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Projects</option>
+                    {% for p in projects %}
+                    <option value="{{ p.id }}" {% if selected_project_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>Test Plan Name</th>
+                    <th>Project</th>
+                    <th>Environment</th>
+                    <th>Assigned Tester</th>
+                    <th>Cases</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plan in test_plans %}
+                <tr>
+                    <td class="fw-bold">
+                        <a href="{{ url_for('test_planning.plan_details', plan_id=plan.id) }}" class="text-dark text-decoration-none hover-primary">
+                            {{ plan.name }}
+                        </a>
+                        <small class="d-block text-secondary fw-normal">{{ plan.description[:80] if plan.description else '' }}...</small>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('projects.details', project_id=plan.project.id) }}" class="text-secondary text-decoration-none small">
+                            {{ plan.project.name }}
+                        </a>
+                    </td>
+                    <td><span class="badge bg-light text-secondary border">{{ plan.environment }}</span></td>
+                    <td class="small text-dark">{{ plan.assigned_tester.username if plan.assigned_tester else 'Unassigned' }}</td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary">{{ plan.test_cases.count() }} cases</span>
+                    </td>
+                    <td>
+                        <span class="badge {{ plan.status|status_badge }}">{{ plan.status }}</span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('test_planning.plan_details', plan_id=plan.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            Open Plan
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="fa-solid fa-clipboard-list fa-2x mb-3 text-secondary d-block"></i>
+                        No test plans found. Create your first test plan to start defining test cases.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

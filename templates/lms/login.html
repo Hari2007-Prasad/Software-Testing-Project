@@ -1,0 +1,50 @@
+{% extends "lms/base_lms.html" %}
+
+{% block title %}Student Login{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="bg-white p-4 p-sm-5 rounded-4 border shadow-sm">
+                <div class="text-center mb-4">
+                    <div class="lms-brand-icon mx-auto mb-3" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1">Student Portal Login</h4>
+                    <p class="text-secondary small">Access your enrolled courses and dashboard</p>
+                </div>
+
+                <form method="POST" action="{{ url_for('lms.login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Student Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted"><i class="fa-regular fa-user"></i></span>
+                            <input type="text" name="username" class="form-control" placeholder="student" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-bold text-secondary">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-lock"></i></span>
+                            <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill shadow-sm fw-semibold">
+                        <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In to Portal
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-top text-center">
+                    <p class="small text-secondary mb-2">Demo Student Credentials: <code>student / student123</code></p>
+                    <p class="small text-secondary mb-0">Don't have an account? <a href="{{ url_for('lms.register') }}" class="text-primary fw-semibold text-decoration-none">Register here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

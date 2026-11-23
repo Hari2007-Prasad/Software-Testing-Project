@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Test Reports Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Home</a></li>
+                <li class="breadcrumb-item active">Test Reports</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">Test & Audit Report Center</h3>
+    </div>
+</div>
+
+<!-- Generate Reports Control Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card-enterprise h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="stat-icon bg-danger-subtle text-danger p-3 rounded" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Executive PDF Quality & Security Report</h5>
+                        <small class="text-secondary">Comprehensive multi-page audit with embedded visual defect images.</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-4">Generates a branded PDF report utilizing ReportLab containing executive summaries, functional execution results, security findings, difference heatmaps, and engineering recommendations.</p>
+
+                <form method="POST" id="pdfReportForm" action="" onsubmit="this.action='/reports/generate-pdf/' + document.getElementById('pdfProjSelect').value;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="input-group">
+                        <select id="pdfProjSelect" class="form-select" required>
+                            {% for p in projects %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-danger rounded-pill-end px-4">
+                            <i class="fa-solid fa-file-arrow-down me-1"></i> Generate PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card-enterprise h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="stat-icon bg-success-subtle text-success p-3 rounded" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">Multi-Sheet Excel Workbook Export</h5>
+                        <small class="text-secondary">Complete raw data export for spreadsheets and BI analysis.</small>
+                    </div>
+                </div>
+                <p class="text-muted small mb-4">Generates an openpyxl Excel spreadsheet (.xlsx) with dedicated tabs for Test Cases, Functional Runs, Security Findings, Computer Vision Metrics, and Threshold Analyses.</p>
+
+                <form method="POST" id="excelReportForm" action="" onsubmit="this.action='/reports/generate-excel/' + document.getElementById('excelProjSelect').value;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="input-group">
+                        <select id="excelProjSelect" class="form-select" required>
+                            {% for p in projects %}
+                            <option value="{{ p.id }}">{{ p.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-success rounded-pill-end px-4">
+                            <i class="fa-solid fa-file-arrow-down me-1"></i> Export Excel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generated Reports Archive Table -->
+<div class="card-enterprise">
+    <div class="card-header">
+        <h5><i class="fa-solid fa-folder-open text-primary me-2"></i> Generated Report Archives ({{ reports|length }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>File Size</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reports %}
+                <tr>
+                    <td class="fw-semibold">
+                        <i class="fa-solid {% if r.type == 'PDF' %}fa-file-pdf text-danger{% else %}fa-file-excel text-success{% endif %} me-2"></i>
+                        {{ r.filename }}
+                    </td>
+                    <td><span class="badge {% if r.type == 'PDF' %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">{{ r.type }}</span></td>
+                    <td class="small text-muted">{{ r.size }}</td>
+                    <td>
+                        <a href="{{ url_for('reports.download', filename=r.filename) }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                            <i class="fa-solid fa-download me-1"></i> Download
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="text-center py-5 text-muted">No generated report files stored on disk yet. Select a project above to generate a new report.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Image Comparison History{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('image_comparison.index') }}">Image Comparison</a></li>
+                <li class="breadcrumb-item active">History</li>
+            </ol>
+        </nav>
+        <h3 class="fw-bold text-dark mb-0">Visual Comparison Execution History</h3>
+    </div>
+    <div>
+        <a href="{{ url_for('image_comparison.workspace') }}" class="btn btn-primary rounded-pill px-4 shadow-sm">
+            <i class="fa-solid fa-camera-retro me-1"></i> New Comparison
+        </a>
+    </div>
+</div>
+
+<div class="card-enterprise">
+    <div class="card-header">
+        <h5>All Recorded Image Comparisons ({{ comparisons|length }})</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-enterprise">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Comparison Name</th>
+                    <th>Project</th>
+                    <th>Pixel Similarity</th>
+                    <th>Diff %</th>
+                    <th>SSIM Score</th>
+                    <th>Regions</th>
+                    <th>Duration</th>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cmp in comparisons %}
+                <tr>
+                    <td class="fw-bold font-monospace">#{{ cmp.id }}</td>
+                    <td class="fw-semibold">{{ cmp.name }}</td>
+                    <td><small class="text-secondary">{{ cmp.project.name }}</small></td>
+                    <td>
+                        <span class="badge bg-success-subtle text-success fs-6">
+                            {{ "%.2f"|format(cmp.metric.pixel_similarity) if cmp.metric else '100.00' }}%
+                        </span>
+                    </td>
+                    <td>{{ "%.2f"|format(cmp.metric.difference_percentage) if cmp.metric else '0.00' }}%</td>
+                    <td>{{ "%.4f"|format(cmp.metric.ssim_score) if cmp.metric else '1.0000' }}</td>
+                    <td>{{ cmp.metric.changed_regions_count if cmp.metric else 0 }}</td>
+                    <td>{{ "%.3f"|format(cmp.metric.processing_duration) if cmp.metric else '0.000' }}s</td>
+                    <td class="small text-muted">{{ cmp.created_at|datetime_format }}</td>
+                    <td>
+                        <a href="{{ url_for('image_comparison.results', comparison_id=cmp.id) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            Inspect
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="10" class="text-center py-5 text-muted">No historical comparisons recorded.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

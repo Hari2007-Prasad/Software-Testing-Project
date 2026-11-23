@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Overview{% endblock %} - Security & Functional Testing Platform</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Custom Platform Theme CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="app-wrapper">
+    <!-- LEFT SIDEBAR -->
+    <aside class="app-sidebar">
+        <div class="sidebar-header">
+            <div class="brand-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="brand-text">
+                <h5>SecFunctional</h5>
+                <span>Testing Framework</span>
+            </div>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Core Testing Engine</div>
+            <a href="{{ url_for('dashboard.index') }}" class="sidebar-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <i class="fa-solid fa-gauge-high"></i>
+                <span>Overview Dashboard</span>
+            </a>
+            <a href="{{ url_for('projects.index') }}" class="sidebar-link {% if request.endpoint and 'projects.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-diagram-project"></i>
+                <span>Projects</span>
+            </a>
+            <a href="{{ url_for('test_planning.index') }}" class="sidebar-link {% if request.endpoint and 'test_planning.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-clipboard-list"></i>
+                <span>Test Planning</span>
+            </a>
+            <a href="{{ url_for('image_comparison.index') }}" class="sidebar-link {% if request.endpoint and 'image_comparison.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-camera-retro"></i>
+                <span>Image Comparison</span>
+            </a>
+            <a href="{{ url_for('automated_testing.index') }}" class="sidebar-link {% if request.endpoint and 'automated_testing.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-vial-circle-check"></i>
+                <span>Automated Testing</span>
+            </a>
+            <a href="{{ url_for('security.index') }}" class="sidebar-link {% if request.endpoint and 'security.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-shield-virus"></i>
+                <span>Security Analysis</span>
+            </a>
+            <a href="{{ url_for('thresholds.index') }}" class="sidebar-link {% if request.endpoint and 'thresholds.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Threshold Analyzer</span>
+            </a>
+
+            <div class="nav-section-title">Reports & Audit</div>
+            <a href="{{ url_for('reports.index') }}" class="sidebar-link {% if request.endpoint and 'reports.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-file-contract"></i>
+                <span>Test Reports</span>
+            </a>
+            <a href="{{ url_for('history.index') }}" class="sidebar-link {% if request.endpoint and 'history.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Execution History</span>
+            </a>
+
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <div class="nav-section-title">Administration</div>
+            <a href="{{ url_for('users.index') }}" class="sidebar-link {% if request.endpoint and 'users.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-users-gear"></i>
+                <span>User Management</span>
+            </a>
+            <a href="{{ url_for('settings.index') }}" class="sidebar-link {% if request.endpoint and 'settings.' in request.endpoint %}active{% endif %}">
+                <i class="fa-solid fa-gear"></i>
+                <span>Settings</span>
+            </a>
+            {% endif %}
+
+            <div class="nav-section-title">Target Application</div>
+            <a href="{{ url_for('lms.home') }}" target="_blank" class="sidebar-link text-info">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                <span>Launch LMS Target</span>
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="d-flex align-items-center justify-content-between">
+                <small class="text-secondary">{{ platform_version }}</small>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                    <i class="fa-solid fa-circle fa-2xs me-1"></i> Online
+                </span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN BODY -->
+    <main class="app-main">
+        <!-- TOP NAVIGATION BAR -->
+        <header class="app-topbar">
+            <!-- Project selector -->
+            <div class="d-flex align-items-center gap-3">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle rounded-pill px-3 py-1" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-folder-tree text-primary me-1"></i>
+                        <span id="activeProjectLabel">Global Workspace</span>
+                    </button>
+                    <ul class="dropdown-menu shadow-sm">
+                        <li><h6 class="dropdown-header">Active Testing Projects</h6></li>
+                        {% for p in global_projects %}
+                        <li><a class="dropdown-item" href="{{ url_for('projects.details', project_id=p.id) }}">{{ p.name }}</a></li>
+                        {% else %}
+                        <li><a class="dropdown-item disabled" href="#">No active projects</a></li>
+                        {% endfor %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-primary" href="{{ url_for('projects.create') }}"><i class="fa-solid fa-plus me-1"></i> New Project</a></li>
+                    </ul>
+                </div>
+
+                <div class="topbar-search d-none d-md-block">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" placeholder="Search test cases, findings, runs..." id="globalSearchInput">
+                </div>
+            </div>
+
+            <!-- Topbar Actions -->
+            <div class="topbar-actions">
+                <!-- Notifications -->
+                <div class="dropdown">
+                    <button class="btn btn-light rounded-circle p-2 position-relative" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-regular fa-bell text-secondary"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end shadow-sm p-3" style="width: 300px;">
+                        <h6 class="dropdown-header px-0">System Notifications</h6>
+                        <div class="py-2 border-bottom">
+                            <small class="fw-bold d-block text-dark">Automated Suite Executed</small>
+                            <small class="text-muted">Regression run finished with 93.3% pass rate.</small>
+                        </div>
+                        <div class="py-2">
+                            <small class="fw-bold d-block text-dark">Security Baseline Scanned</small>
+                            <small class="text-muted">Audited LMS endpoints for OWASP headers.</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User profile pill -->
+                {% if current_user.is_authenticated %}
+                <div class="dropdown">
+                    <a href="#" class="user-pill dropdown-toggle" data-bs-toggle="dropdown">
+                        <div class="user-avatar">
+                            {{ current_user.username[0]|upper }}
+                        </div>
+                        <div class="d-none d-sm-block text-start">
+                            <div class="fw-bold lh-1" style="font-size: 0.85rem;">{{ current_user.full_name or current_user.username }}</div>
+                            <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">{{ current_user.role|upper }}</span>
+                        </div>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><span class="dropdown-header">Signed in as <b>{{ current_user.username }}</b></span></li>
+                        <li><a class="dropdown-item" href="{{ url_for('lms.student_dashboard') }}"><i class="fa-solid fa-graduation-cap me-2 text-secondary"></i> Student LMS</a></li>
+                        {% if current_user.role == 'admin' %}
+                        <li><a class="dropdown-item" href="{{ url_for('users.index') }}"><i class="fa-solid fa-user-shield me-2 text-secondary"></i> User Administration</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('settings.index') }}"><i class="fa-solid fa-sliders me-2 text-secondary"></i> System Settings</a></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i> Log Out</a></li>
+                    </ul>
+                </div>
+                {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm rounded-pill px-3">Sign In</a>
+                {% endif %}
+            </div>
+        </header>
+
+        <!-- FLASH NOTIFICATION MESSAGES -->
+        <div class="container-fluid px-4 pt-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                            <i class="fa-solid fa-circle-info me-2"></i> {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% if error_code %}
+            <div class="card-enterprise text-center p-5 mt-4">
+                <h1 class="display-1 text-danger fw-bold">{{ error_code }}</h1>
+                <h3 class="mb-3">{{ error_message }}</h3>
+                <p class="text-secondary">Please return to the dashboard or verify your access credentials.</p>
+                <div>
+                    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary rounded-pill px-4">Return to Dashboard</a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- MAIN WORKSPACE CONTENT -->
+        <div class="app-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+<!-- Bootstrap 5.3 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js 4 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
